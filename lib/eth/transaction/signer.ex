@@ -58,6 +58,7 @@ defmodule ETH.Transaction.Signer do
   end
 
   def sign_transaction(transaction, private_key) when is_map(transaction) do
+
     transaction
     |> ETH.Transaction.to_list()
     |> sign_transaction(private_key)
@@ -73,7 +74,8 @@ defmodule ETH.Transaction.Signer do
           _data,
           _v,
           _r,
-          _s
+          _s,
+          _chain_id
         ],
         <<private_key::binary-size(32)>>
       )
@@ -82,6 +84,8 @@ defmodule ETH.Transaction.Signer do
   end
 
   def sign_transaction(
+
+
         transaction_list = [
           _nonce,
           _gas_price,
@@ -91,7 +95,8 @@ defmodule ETH.Transaction.Signer do
           _data,
           _v,
           _r,
-          _s
+          _s,
+          _chain_id
         ],
         <<encoded_private_key::binary-size(64)>>
       )
@@ -110,11 +115,14 @@ defmodule ETH.Transaction.Signer do
            data,
            v,
            _r,
-           _s
+           _s,
+           chain_id
          ],
          <<private_key::binary-size(32)>>
        ) do
-    chain_id = get_chain_id(v, Enum.at(transaction_list, 9))
+
+
+    chain_id = get_chain_id(v, chain_id) |> buffer_to_int()
     message_hash = hash_transaction(transaction_list, false)
 
     [signature: signature, recovery: recovery] = secp256k1_signature(message_hash, private_key)
@@ -122,9 +130,9 @@ defmodule ETH.Transaction.Signer do
     <<sig_r::binary-size(32)>> <> <<sig_s::binary-size(32)>> = signature
     initial_v = recovery + 27
 
-    sig_v = if chain_id > 0, do: initial_v + (chain_id * 2 + 8), else: initial_v
+    sig_v = if chain_id > 0, do: recovery + (chain_id * 2 + 35), else: initial_v
 
-    [nonce, gas_price, gas_limit, to, value, data, <<sig_v>>, sig_r, sig_s]
+    [nonce, gas_price, gas_limit, to, value, data, sig_v, sig_r, sig_s]
     |> ExRLP.encode()
   end
 end
