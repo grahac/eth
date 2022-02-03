@@ -1,6 +1,6 @@
 defmodule ETH.Transaction.Builder do
   import ETH.Transaction.Parser
-
+  require Logger 
   @moduledoc """
     This module converts transaction parameters as a list or map to
     Ethereum Transaction map. The result map is encoded with default ethereum hex encodings for
@@ -64,6 +64,7 @@ defmodule ETH.Transaction.Builder do
 
   defp build_params_from_list(params) do
     to = Keyword.get(params, :to, "")
+    from = Keyword.get(params, :from, "")
     value = Keyword.get(params, :value, 0)
     gas_price = Keyword.get_lazy(params, :gas_price, fn -> ETH.gas_price!() end)
     data = Keyword.get(params, :data, "")
@@ -82,6 +83,7 @@ defmodule ETH.Transaction.Builder do
         :gas_limit,
         fn ->
           ETH.estimate_gas!(%{
+            from: from,
             to: to,
             value: value,
             data: target_data,
@@ -104,6 +106,7 @@ defmodule ETH.Transaction.Builder do
 
   defp build_params_from_map(params) do
     to = Map.get(params, :to, "")
+    from = Map.get(params, :from, "")
     value = Map.get(params, :value, 0)
     gas_price = Map.get_lazy(params, :gas_price, fn -> ETH.gas_price!() end)
     data = Map.get(params, :data, "")
@@ -122,6 +125,7 @@ defmodule ETH.Transaction.Builder do
         :gas_limit,
         fn ->
           ETH.estimate_gas!(%{
+            from: from,
             to: to,
             value:  "0x" <> Hexate.encode(value),
             data: target_data,
@@ -132,7 +136,7 @@ defmodule ETH.Transaction.Builder do
 
       )
 
-    IO.puts("gas is #{gas_limit}, chain_id is #{chain_id}")
+    Logger.debug("gas is #{gas_limit}, chain_id is #{chain_id}")
     %{
       chain_id: chain_id,
       nonce: nonce,
